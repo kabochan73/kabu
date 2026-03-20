@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Stock extends Model
 {
-    protected $fillable = ['ticker', 'name', 'market', 'is_active'];
+    protected $fillable = ['ticker', 'name', 'market', 'is_active', 'is_index'];
 
-    protected $casts = ['is_active' => 'boolean'];
+    protected $casts = ['is_active' => 'boolean', 'is_index' => 'boolean'];
 
     public function prices(): HasMany
     {

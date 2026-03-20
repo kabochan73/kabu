@@ -3,6 +3,32 @@
 @section('title', '株価ダッシュボード')
 
 @section('content')
+{{-- 日経平均 --}}
+@if($nikkei)
+    @php $p = $nikkei->latestPrice; @endphp
+    <div class="bg-white rounded-lg shadow p-6 mb-6 flex items-center justify-between">
+        <div>
+            <a href="{{ route('stocks.show', $nikkei) }}" class="text-sm text-gray-500 hover:text-blue-600 hover:underline mb-1 inline-block">日経平均株価</a>
+            <div class="text-3xl font-bold font-mono">
+                {{ $p ? number_format($p->close, 2) : '-' }} 円
+            </div>
+        </div>
+        @if($p)
+            <div class="text-right">
+                <div class="text-xl font-mono {{ $p->change >= 0 ? 'text-red-600' : 'text-blue-600' }}">
+                    {{ $p->change >= 0 ? '+' : '' }}{{ number_format($p->change, 2) }} 円
+                </div>
+                <div class="text-lg font-mono {{ $p->change_percent >= 0 ? 'text-red-600' : 'text-blue-600' }}">
+                    {{ $p->change_percent >= 0 ? '+' : '' }}{{ $p->change_percent }}%
+                </div>
+                <div class="text-xs text-gray-400 mt-1">{{ $p->date->format('Y年m月d日') }} 時点</div>
+            </div>
+        @else
+            <div class="text-gray-400 text-sm">データ未取得</div>
+        @endif
+    </div>
+@endif
+
 {{-- 銘柄追加フォーム --}}
 <div class="bg-white rounded-lg shadow p-6 mb-6">
     <h2 class="text-lg font-semibold mb-4">銘柄を追加</h2>

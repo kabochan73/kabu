@@ -8,7 +8,14 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        // 日経平均
+        $nikkei = Stock::where('ticker', '^N225')
+            ->with('latestPrice')
+            ->first();
+
+        // ウォッチリスト（指数を除く）
         $stocks = Stock::where('is_active', true)
+            ->where('is_index', false)
             ->with(['latestPrice', 'latestFinancial'])
             ->get();
 
@@ -18,6 +25,6 @@ class DashboardController extends Controller
             ->sortBy(fn($s) => $s->latestPrice->change_percent)
             ->values();
 
-        return view('dashboard', compact('stocks', 'declineRanking'));
+        return view('dashboard', compact('nikkei', 'stocks', 'declineRanking'));
     }
 }
