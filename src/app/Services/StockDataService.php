@@ -105,13 +105,11 @@ class StockDataService
 
         foreach ($newsList as $item) {
             StockNews::updateOrInsert(
-                ['stock_id' => $stock->id, 'url' => $item['link'] ?? ''],
+                ['stock_id' => $stock->id, 'url' => $item['url'] ?? ''],
                 [
                     'title'        => $item['title'] ?? '',
-                    'source'       => $item['publisher'] ?? null,
-                    'published_at' => isset($item['providerPublishTime'])
-                        ? Carbon::createFromTimestamp($item['providerPublishTime'])
-                        : null,
+                    'source'       => $item['source'] ?? 'Yahoo!ファイナンス',
+                    'published_at' => $item['published_at'] ?? null,
                     'created_at'   => now(),
                     'updated_at'   => now(),
                 ]

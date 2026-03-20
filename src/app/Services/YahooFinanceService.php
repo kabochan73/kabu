@@ -5,6 +5,7 @@ namespace App\Services;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\DomCrawler\Crawler;
 
 class YahooFinanceService
 {
@@ -65,24 +66,58 @@ class YahooFinanceService
     }
 
     /**
-     * ニュースを取得
+     * Yahoo!ファイナンス Japan から日本語ニュースを取得
+     * ticker例: 7203.T → コード部分 7203 を使う
      */
     public function getNews(string $ticker): array
     {
+        // "7203.T" → "7203"
+        $code = explode('.', $ticker)[0];
+
         try {
-            $url = "https://query1.finance.yahoo.com/v1/finance/search";
-            $response = $this->client->get($url, [
-                'query' => [
-                    'q'           => $ticker,
-                    'newsCount'   => 10,
-                    'quotesCount' => 0,
+            $response = $this->client->get("https://finance.yahoo.co.jp/quote/{$code}/news", [
+                'headers' => [
+                    'User-Agent'      => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept-Language' => 'ja,en;q=0.9',
                 ],
             ]);
 
-            $data = json_decode($response->getBody()->getContents(), true);
-            return $data['news'] ?? [];
+            $html    = $response->getBody()->getContents();
+            $crawler = new Crawler($html);
+            $news    = [];
+
+            // timeタグを持つli要素のみニュースとして取得
+            $crawler->filter('li')->each(function (Crawler $node) use (&$news) {
+                $linkNode = $node->filter('a');
+                $timeNode = $node->filter('time');
+
+                // 日時がないものはニュースではない（メニューなど）
+                if ($linkNode->count() === 0 || $timeNode->count() === 0) return;
+
+                $title = trim($linkNode->text(''));
+                $href  = $linkNode->attr('href') ?? '';
+
+                if (empty($title) || empty($href)) return;
+
+                // 相対URLを絶対URLに変換
+                if (!str_starts_with($href, 'http')) {
+                    $href = 'https://finance.yahoo.co.jp' . $href;
+                }
+
+                $datetime    = $timeNode->attr('datetime');
+                $publishedAt = $datetime ? \Carbon\Carbon::parse($datetime) : null;
+
+                $news[] = [
+                    'title'        => $title,
+                    'url'          => $href,
+                    'source'       => 'Yahoo!ファイナンス',
+                    'published_at' => $publishedAt,
+                ];
+            });
+
+            return array_slice($news, 0, 15);
         } catch (RequestException $e) {
-            Log::error("YahooFinance ニュース取得失敗 [{$ticker}]: " . $e->getMessage());
+            Log::error("Yahoo!ファイナンス Japan ニュース取得失敗 [{$ticker}]: " . $e->getMessage());
             return [];
         }
     }
